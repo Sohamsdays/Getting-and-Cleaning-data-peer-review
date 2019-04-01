@@ -1,0 +1,104 @@
+
+# Download and unzipping dataset if the dataset doesnot exist in the local disk
+
+
+if(!file.exists("./data")){dir.create("./data")}
+# This is the link for the raw data 
+fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(fileUrl,destfile="./data/Dataset.zip")
+
+# Unzipping the new downloaded dataSet to /data directory
+unzip(zipfile="./data/Dataset.zip",exdir="./data")
+
+#You should create one R script called run_analysis.R that does the following.
+
+
+# Merges the training and the test sets to create one data set.
+
+
+#  Reading files
+
+#  Reading trainings tables:
+
+x_train <- read.table("./data/UCI HAR Dataset/train/X_train.txt")
+y_train <- read.table("./data/UCI HAR Dataset/train/y_train.txt")
+subject_train <- read.table("./data/UCI HAR Dataset/train/subject_train.txt")
+
+#  Reading testing tables:
+x_test <- read.table("./data/UCI HAR Dataset/test/X_test.txt")
+y_test <- read.table("./data/UCI HAR Dataset/test/y_test.txt")
+subject_test <- read.table("./data/UCI HAR Dataset/test/subject_test.txt")
+
+#  Reading feature vector:
+features <- read.table('./data/UCI HAR Dataset/features.txt')
+
+#  Reading activity labels:
+activityLabels = read.table('./data/UCI HAR Dataset/activity_labels.txt')
+
+# 1.2 Assigning column names:
+
+colnames(x_train) <- features[,2]
+colnames(y_train) <-"activityId"
+colnames(subject_train) <- "subjectId"
+
+colnames(x_test) <- features[,2] 
+colnames(y_test) <- "activityId"
+colnames(subject_test) <- "subjectId"
+
+colnames(activityLabels) <- c('activityId','activityType')
+
+#1.3 Merging all data in one set:
+
+mrg_train <- cbind(y_train, subject_train, x_train)
+mrg_test <- cbind(y_test, subject_test, x_test)
+setAllInOne <- rbind(mrg_train, mrg_test)
+
+#dim(setAllInOne)
+#[1] 10299   563
+
+
+# Extracts only the measurements on the mean and standard deviation for each measurement.
+
+
+#2.1 Reading column names:
+
+colNames <- colnames(setAllInOne)
+
+#2.2 Create vector for defining ID, mean and standard deviation:
+
+mean_and_std <- (grepl("activityId" , colNames) | 
+                   grepl("subjectId" , colNames) | 
+                   grepl("mean.." , colNames) | 
+                   grepl("std.." , colNames) 
+)
+
+# Making nessesary subset from setAllInOne:
+
+setForMeanAndStd <- setAllInOne[ , mean_and_std == TRUE]
+
+
+# Uses descriptive activity names to name the activities in the data set
+
+setWithActivityNames <- merge(setForMeanAndStd, activityLabels,
+                              by='activityId',
+                              all.x=TRUE)
+
+
+#Step 4. Appropriately labels the data set with descriptive variable names.
+
+
+#Done in previous steps, see 1.3,2.2 and 2.3!
+
+
+# From the data set in previous step , creates a independent tidy data set with the mean of each variable for each activity, each subject.
+
+
+# Make tidy data set
+
+secTidySet <- aggregate(. ~subjectId + activityId, setWithActivityNames, mean)
+secTidySet <- secTidySet[order(secTidySet$subjectId, secTidySet$activityId),]
+
+# Create the tidy data set in txt file with the required info from coursera
+
+write.table(secTidySet, "secTidySet.txt", row.name=FALSE)
+
